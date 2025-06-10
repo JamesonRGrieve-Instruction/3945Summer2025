@@ -64,9 +64,9 @@ namespace ProjectName.Controllers
             return sortedPeople.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
         }
         [HttpGet("all")]
-        public ActionResult<IEnumerable<string>> GetAllPeople()
+        public ActionResult<IEnumerable<string>> GetAllPeople([FromQuery] string? search)
         {
-            return People;
+            return search == null ? People : People.Where(x => x.Contains(search)).ToArray();
         }
         [HttpGet("{name}")]
         public ActionResult<int> GetListPosition(string name)
