@@ -25,9 +25,10 @@ namespace ProjectName.Controllers
             return posts.Find(post => post.ID.ToString() == id);
         }
         [HttpGet("")]
-        public ActionResult<IEnumerable<Post>> ListPosts()
+        public ActionResult<IEnumerable<Post>> ListPosts([FromQuery] string? search, [FromQuery] string? reverseOrder, [FromQuery] int? page, [FromQuery] int? pageSize)
         {
-            return posts;
+            IEnumerable<Post> result = string.IsNullOrWhiteSpace(search) ? posts : posts.Where(post => post.Title.Contains(search) || post.Content.Contains(search));
+            return (reverseOrder ?? "").Trim() == "true" ? result.OrderByDescending(post => post.Title).ToList() : result.OrderBy(post => post.Title).Skip((pageSize * (page - 1)) ?? 0).Take(pageSize ?? 100).ToList();
         }
         [HttpPut("{id}")]
         public ActionResult<Post> PutPost(string id, string title, string content, string userID)

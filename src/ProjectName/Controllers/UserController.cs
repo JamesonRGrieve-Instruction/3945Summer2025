@@ -25,10 +25,15 @@ namespace ProjectName.Controllers
         {
             return users.Find(user => user.ID.ToString() == id);
         }
-        [HttpGet("")]
-        public ActionResult<IEnumerable<User>> ListUsers()
+        [HttpGet("{id}/post")]
+        public ActionResult<IEnumerable<Post>> GetUserPosts(string id)
         {
-            return users;
+            return PostController.posts.Where(post => post.UserID == id).ToList();
+        }
+        [HttpGet("")]
+        public ActionResult<IEnumerable<User>> ListUsers([FromQuery] string? search)
+        {
+            return string.IsNullOrWhiteSpace(search) ? users.ToList() : users.Where(user => user.EMail.Contains(search) || user.UserName.Contains(search)).ToList();
         }
         [HttpPut("{id}")]
         public ActionResult<User> PutUser(string id, string email, string userName)
