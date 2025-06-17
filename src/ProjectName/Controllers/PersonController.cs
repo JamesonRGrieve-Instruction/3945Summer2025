@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace ProjectName.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PersonController : ControllerBase
     {
         static string[] People = new string[] {
@@ -57,17 +59,20 @@ namespace ProjectName.Controllers
             "Grayson",
             "Lily"
         };
+        [Authorize(Roles = "User")]
         [HttpGet("")]
         public ActionResult<IEnumerable<string>> GetPeople(int page, int pageSize, bool reverse)
         {
             string[] sortedPeople = (reverse ? People.OrderByDescending(x => x) : People.OrderBy(x => x)).ToArray();
             return sortedPeople.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
         }
+        [Authorize(Roles = "Admin")]
         [HttpGet("all")]
         public ActionResult<IEnumerable<string>> GetAllPeople([FromQuery] string? search)
         {
             return search == null ? People : People.Where(x => x.Contains(search)).ToArray();
         }
+
         [HttpGet("{name}")]
         public ActionResult<int> GetListPosition(string name)
         {
