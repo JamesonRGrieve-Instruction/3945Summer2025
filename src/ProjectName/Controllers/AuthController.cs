@@ -1,14 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using YourApi.Services;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using System;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 
 namespace YourApi.Controllers
@@ -22,20 +17,22 @@ namespace YourApi.Controllers
         private readonly IConfiguration _configuration;
         private readonly IJwtService _jwtService;
 
-        public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IConfiguration configuration)
+        public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IConfiguration configuration, IJwtService jwtService)
         {
             _userManager = userManager;
             _signInManager = _signInManager;
             _configuration = configuration;
+            _jwtService = jwtService;
         }
-        [HttpPost("/register")]
+        [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] CredentialRequest request)
         {
             if (request == null)
             {
                 return BadRequest("No credentials provided.");
             }
-            if ((await _userManager.CreateAsync(new IdentityUser { Email = request.Email }, request.Password)).Succeeded)
+            var temp = await _userManager.CreateAsync(new IdentityUser { Email = request.Email, UserName = request.Email.Split("@")[0] }, request.Password);
+            if (temp.Succeeded)
             {
                 return NoContent();
             }
@@ -54,20 +51,11 @@ namespace YourApi.Controllers
             {
                 return BadRequest("Invalid credentials provided.");
             }
-            SymmetricSecurityKey secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            SigningCredentials credentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
 
-            JwtSecurityToken token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: new Claim[] {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            },
-            expires: DateTime.Now.AddHours(1),
-            signingCredentials: credentials
-           );
-            return Ok(new { Token = new JwtSecurityTokenHandler().WriteToken(token) });
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = _jwtService.GenerateToken(user.Id, user.Email!, roles);
+
+            return Ok(new { Token = token });
 
         }
 
